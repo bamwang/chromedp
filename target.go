@@ -26,6 +26,8 @@ type Target struct {
 
 	waitQueue    chan func() bool
 	messageQueue chan *cdproto.Message
+	
+	Done chan interface{}
 
 	// frames is the set of encountered frames.
 	frames map[cdp.FrameID]*cdp.Frame
@@ -65,8 +67,11 @@ func (t *Target) run(ctx context.Context) {
 	// then passes the events onto the main goroutine for the target handler
 	// to update itself.
 	go func() {
+		t.Done = make(chan interface{})
 		for {
 			select {
+			case <-t.Done:
+				return
 			case <-ctx.Done():
 				return
 			case msg := <-t.messageQueue:
